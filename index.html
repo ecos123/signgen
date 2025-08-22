@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>OHLA Email Signature Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --ohla-blue:#1a2250;
+      --ohla-red:#eb0023;
+      --border:#e6e6e6;
+      --bg:#fafafa;
+    }
+    body{font-family: Segoe UI, Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ohla-blue); margin:0; padding:24px;}
+    .wrap{max-width:980px; margin:0 auto; display:grid; gap:20px;}
+    .card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px;}
+    h1{font-size:24px; margin:0 0 12px 0; color:var(--ohla-blue); text-align:center;}
+    h2{font-size:16px; margin:0 0 10px 0; color:var(--ohla-blue);}
+    label{font-size:14px; opacity:.9;}
+    input[type="text"]{padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; color:var(--ohla-blue);}
+    #phone{width:33%;}
+    .grid{display:grid; gap:14px;}
+    .grid-2{grid-template-columns:1fr 1fr;}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+    .campus-list{display:grid; grid-template-columns:repeat(3, minmax(180px,1fr)); gap:8px 14px;}
+    .btn{appearance:none; border:1px solid var(--ohla-blue); background:var(--ohla-blue); color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-size:14px}
+    .btn.secondary{background:#fff; color:var(--ohla-blue);}
+    .muted{font-size:13px; opacity:.75;}
+    #previewLong, #previewShort{padding:16px; background:#fff; border:1px solid var(--border); border-radius:12px;}
+    .badge{display:inline-block; padding:2px 8px; border-radius:999px; background:#ffd966; color:#333; font-size:12px; margin-top:10px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>OHLA Email Signature Generator</h1>
+
+      <div class="grid grid-2">
+        <div>
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" placeholder="&lt;&lt;Full Name&gt;&gt;" />
+        </div>
+        <div>
+          <label for="position">Position</label>
+          <input id="position" type="text" placeholder="&lt;&lt;Position&gt;&gt;" />
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px;">
+        <div class="row" style="align-items:flex-end;">
+          <div style="flex:1;">
+            <label for="phone">Phone</label><br>
+            <input id="phone" type="text" placeholder="digits only, e.g., 3215122858" />
+            <div class="muted">Enter digits only. It formats to +1 (XXX) XXX-XXXX. <strong>Use +1 for USA</strong>.</div>
+          </div>
+          <div class="row" style="align-items:center;">
+            <input id="isWhatsapp" type="checkbox" />
+            <label for="isWhatsapp" style="margin:0;">Is WhatsApp?</label>
+          </div>
+        </div>
+
+        <div>
+          <h2>Campuses</h2>
+          <div class="row" style="margin-bottom:8px;">
+            <button class="btn secondary" id="checkAll" type="button">Select all</button>
+            <button class="btn secondary" id="uncheckAll" type="button">Clear</button>
+          </div>
+          <div class="campus-list" id="campusList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LONG VERSION -->
+    <div class="card">
+      <h2>Long version for New messages</h2>
+      <div id="previewLong"></div>
+      <div class="section-actions" style="margin-top:10px;">
+        <button class="btn" id="copyLongHtml" type="button">Copy as HTML</button>
+        <button class="btn secondary" id="copyLongText" type="button">Copy as plain text</button>
+        <button class="btn secondary" id="downloadLong" type="button">Download HTML</button>
+      </div>
+    </div>
+
+    <!-- SHORT VERSION -->
+    <div class="card">
+      <h2>Short version for Replies / forwards</h2>
+      <div id="previewShort"></div>
+      <div id="shortWarning" class="badge" style="display:none;">⚠ Please select at least one campus</div>
+      <div class="section-actions" style="margin-top:10px;">
+        <button class="btn" id="copyShortHtml" type="button">Copy as HTML</button>
+        <button class="btn secondary" id="copyShortText" type="button">Copy as plain text</button>
+        <button class="btn secondary" id="downloadShort" type="button">Download HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const campuses = ["Miami","Boca Raton","Aventura","Orlando","Tampa"];
+    const logoURL = "https://www.ohla.com/wp-content/uploads/2025/08/OHLA_Logo_Signature.png";
+    const SITE_DISPLAY = "www.ohla.com";
+    const SITE_LINK = "https://www.ohla.com";
+
+    const campusList = document.getElementById("campusList");
+    const fullName = document.getElementById("fullName");
+    const position = document.getElementById("position");
+    const phone = document.getElementById("phone");
+    const isWhatsapp = document.getElementById("isWhatsapp");
+    const previewLong = document.getElementById("previewLong");
+    const previewShort = document.getElementById("previewShort");
+    const shortWarning = document.getElementById("shortWarning");
+
+    campuses.forEach((c, i) => {
+      const id = "campus_" + i;
+      const wrap = document.createElement("label");
+      wrap.style.display = "flex";
+      wrap.style.alignItems = "center";
+      wrap.style.gap = "8px";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = id;
+      cb.value = c;
+      wrap.appendChild(cb);
+      const span = document.createElement("span");
+      span.textContent = c;
+      wrap.appendChild(span);
+      campusList.appendChild(wrap);
+      cb.addEventListener("change", updateAll);
+    });
+
+    document.getElementById("checkAll").addEventListener("click", () => {
+      campusList.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = true);
+      updateAll();
+    });
+    document.getElementById("uncheckAll").addEventListener("click", () => {
+      campusList.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+      updateAll();
+    });
+
+    [fullName, position, phone, isWhatsapp].forEach(el => el.addEventListener("input", updateAll));
+
+    function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    function selectedCampuses() {
+      return Array.from(campusList.querySelectorAll("input[type=checkbox]:checked")).map(x => x.value);
+    }
+
+    function formatUS(phoneDigits){
+      let digits = String(phoneDigits||"").replace(/\D+/g,"");
+      if (digits.length === 10) digits = "1" + digits;
+      if (digits.length === 11 && digits.startsWith("1")){
+        const area = digits.slice(1,4);
+        const part1 = digits.slice(4,7);
+        const part2 = digits.slice(7,11);
+        return { display: `+1 (${area}) ${part1}-${part2}`, linkDigits: digits };
+      }
+      return { display: `+${digits}`, linkDigits: digits };
+    }
+
+    function campusLineHTML(camps){
+      if(!camps.length) return "<strong>OHLA Schools</strong>";
+      const cities = camps.map(c => `<span style="color:#eb0023;">${esc(c)}</span>`).join(" • ");
+      return `<strong>OHLA Schools</strong> • ${cities}`;
+    }
+
+    // Long version
+    function buildLongHTML(){
+      const name = fullName.value.trim() || "&lt;&lt;Full Name&gt;&gt;";
+      const role = position.value.trim() || "&lt;&lt;Position&gt;&gt;";
+      const camps = selectedCampuses();
+      const campusHTML = campusLineHTML(camps);
+
+      const phoneRaw = phone.value.trim();
+      const hasPhone = !!phoneRaw.replace(/\D+/g,"");
+      const f = hasPhone ? formatUS(phoneRaw) : null;
+      const phoneHtml = hasPhone
+        ? (isWhatsapp.checked
+            ? `WhatsApp: <a href="https://wa.me/${f.linkDigits}" style="color:#1a2250; text-decoration:none;">${esc(f.display)}</a>`
+            : `Phone: <span style="color:#1a2250;">${esc(f.display)}</span>`)
+        : "";
+
+      return `
+<table cellpadding="0" cellspacing="0" border="0" style="font-family:'League Spartan','Segoe UI',Arial,Helvetica,sans-serif; color:#1a2250;">
+  <tr>
+    <td style="padding:0 0 8px 0; text-align:left;">
+      <img src="${logoURL}" alt="OHLA Schools" style="height:110px; width:auto; display:block;">
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 0;">
+      <div style="font-size:16px; line-height:1.3; color:#1a2250; font-weight:700;">${name} | ${role}</div>
+      <div style="height:8px;"></div>
+      <div style="font-family:Montserrat,'Segoe UI',Arial,Helvetica,sans-serif; font-size:13px; line-height:1.5; color:#1a2250;">
+        <div>${campusHTML}</div>
+        <div><a href="${SITE_LINK}" style="color:#1a2250; text-decoration:none;">${esc(SITE_DISPLAY)}</a></div>
+        ${hasPhone ? `<div>${phoneHtml}</div>` : ``}
+      </div>
+    </td>
+  </tr>
+</table>
+`.trim();
+    }
+
+    // Short version
+    function buildShortHTML(){
+      const name = fullName.value.trim() || "&lt;&lt;Full Name&gt;&gt;";
+      const role = position.value.trim() || "&lt;&lt;Position&gt;&gt;";
+      const camps = selectedCampuses();
+      const cities = camps.length ? camps.map(c => `<span style="color:#eb0023;">${esc(c)}</span>`).join(" • ") : "";
+      return `
+<table cellpadding="0" cellspacing="0" border="0" style="font-family:'League Spartan','Segoe UI',Arial,Helvetica,sans-serif; color:#1a2250;">
+  <tr>
+    <td style="padding:12px 0;">
+      <div style="font-size:16px; line-height:1.4; color:#1a2250; font-weight:700;">
+        ${name} | ${role} | OHLA SCHOOLS
+      </div>
+      <div style="font-size:13px; line-height:1.4; color:#1a2250;">
+        Locations: ${cities}
+      </div>
+    </td>
+  </tr>
+</table>
+`.trim();
+    }
+
+    function updateAll(){
+      previewLong.innerHTML = buildLongHTML();
+      previewShort.innerHTML = buildShortHTML();
+      const camps = selectedCampuses();
+      shortWarning.style.display = camps.length ? "none" : "inline-block";
+    }
+
+    // Copy/download
+    async function copyHtmlFrom(el){
+      const html = el.innerHTML;
+      const ta = document.createElement("textarea");
+      ta.value = html;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("Signature HTML copied to clipboard.");
+    }
+
+    function copyText(text){
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("Plain text copied.");
+    }
+
+    function downloadHtml(filename, html){
+      const blob = new Blob([html], {type: "text/html"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    }
+
+    document.getElementById("copyLongHtml").addEventListener("click", () => copyHtmlFrom(previewLong));
+    document.getElementById("copyLongText").addEventListener("click", () => copyText(previewLong.innerText));
+    document.getElementById("downloadLong").addEventListener("click", () => downloadHtml("OHLA_signature_long.html", previewLong.innerHTML));
+
+    document.getElementById("copyShortHtml").addEventListener("click", () => copyHtmlFrom(previewShort));
+    document.getElementById("copyShortText").addEventListener("click", () => copyText(previewShort.innerText));
+    document.getElementById("downloadShort").addEventListener("click", () => downloadHtml("OHLA_signature_short.html", previewShort.innerHTML));
+
+    updateAll();
+  </script>
+</body>
+</html>
