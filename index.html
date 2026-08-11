@@ -19,7 +19,7 @@
     h2{font-size:16px; margin:0 0 10px 0; color:var(--ohla-blue);}
     label{font-size:14px; opacity:.9;}
     input[type="text"]{padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; color:var(--ohla-blue);}
-    #phone{width:33%;}
+    #phone, #whatsapp{width:100%; box-sizing:border-box;}
     .grid{display:grid; gap:14px;}
     .grid-2{grid-template-columns:1fr 1fr;}
     .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
@@ -56,17 +56,16 @@
       </div>
 
       <div class="grid" style="margin-top:14px;">
-        <div class="row" style="align-items:flex-end;">
-          <div style="flex:1;">
+        <div class="grid grid-2">
+          <div>
             <label for="phone">Phone</label><br>
-            <div class="row" style="align-items:center;">
-              <input id="phone" type="text" placeholder="digits only, e.g., 3215122858" />
-            </div>
+            <input id="phone" type="text" placeholder="digits only, e.g., 3215122858" />
             <div class="muted">Enter digits only. It formats to +1 (XXX) XXX-XXXX. <strong>Use +1 for USA</strong>.</div>
           </div>
-          <div class="row" style="align-items:center;">
-            <input id="isWhatsapp" type="checkbox" />
-            <label for="isWhatsapp" style="margin:0;">Is WhatsApp?</label>
+          <div>
+            <label for="whatsapp">WhatsApp</label><br>
+            <input id="whatsapp" type="text" placeholder="digits only, e.g., 3215122858" />
+            <div class="muted">Enter digits only. Leave blank if not applicable.</div>
           </div>
         </div>
 
@@ -77,6 +76,30 @@
             <button class="btn secondary" id="uncheckAll" type="button">Clear</button>
           </div>
           <div class="campus-list" id="campusList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How to install your signature</h2>
+      <div class="grid grid-2">
+        <div>
+          <strong>Outlook (desktop/web)</strong>
+          <ol style="margin:8px 0 0 18px; padding:0; font-size:13px; line-height:1.6;">
+            <li>Fill in your info above.</li>
+            <li>Click <em>Copy to Clipboard (Rich)</em> on the Long version.</li>
+            <li>Outlook &rarr; File &rarr; Options &rarr; Mail &rarr; Signatures &rarr; New &rarr; paste (Ctrl+V) &rarr; Save.</li>
+            <li>Set it as default for <em>New messages</em>.</li>
+            <li>Repeat with the Short version, set as default for <em>Replies/forwards</em>.</li>
+          </ol>
+        </div>
+        <div>
+          <strong>IONOS Webmail (mail.ionos.com)</strong>
+          <ol style="margin:8px 0 0 18px; padding:0; font-size:13px; line-height:1.6;">
+            <li>Click <em>Copy as HTML</em> on the version you want.</li>
+            <li>In IONOS: Settings &rarr; Signature &rarr; enable HTML signature &rarr; switch the editor to source/code view (&lt;/&gt;) &rarr; paste &rarr; Save.</li>
+            <li>If your IONOS editor accepts rich paste directly, <em>Copy to Clipboard (Rich)</em> also works.</li>
+          </ol>
         </div>
       </div>
     </div>
@@ -108,7 +131,7 @@
   </div>
 
   <script>
-    const campuses = ["Miami","Boca Raton","Aventura","Orlando","Tampa"];
+    const campuses = ["Miami","Orlando","Tampa","Virtual Campus"];
     const logoURL = "https://www.ohla.com/wp-content/uploads/2025/08/OHLA_Logo_Small_70x70.png";
     const SITE_DISPLAY = "www.ohla.com";
     const SITE_LINK = "https://www.ohla.com";
@@ -117,7 +140,7 @@
     const fullName = document.getElementById("fullName");
     const position = document.getElementById("position");
     const phone = document.getElementById("phone");
-    const isWhatsapp = document.getElementById("isWhatsapp");
+    const whatsapp = document.getElementById("whatsapp");
     const previewLong = document.getElementById("previewLong");
     const previewShort = document.getElementById("previewShort");
     const shortWarning = document.getElementById("shortWarning");
@@ -149,7 +172,7 @@
       updateAll();
     });
 
-    [fullName, position, phone, isWhatsapp].forEach(el => el.addEventListener("input", updateAll));
+    [fullName, position, phone, whatsapp].forEach(el => el.addEventListener("input", updateAll));
 
     function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
     function selectedCampuses() {
@@ -185,11 +208,15 @@
 
       const phoneRaw = phone.value.trim();
       const hasPhone = !!phoneRaw.replace(/\D+/g,"");
-      const f = hasPhone ? formatUS(phoneRaw) : null;
       const phoneHtml = hasPhone
-        ? (isWhatsapp.checked
-            ? `<font color="#1a2250">WhatsApp:</font> <a href="https://wa.me/${f.linkDigits}"><font color="#1a2250">${esc(f.display)}</font></a>`
-            : `<font color="#1a2250">Phone:</font> <font color="#1a2250">${esc(f.display)}</font>`)
+        ? `<font color="#1a2250">Phone:</font> <font color="#1a2250">${esc(formatUS(phoneRaw).display)}</font>`
+        : "";
+
+      const waRaw = whatsapp.value.trim();
+      const hasWa = !!waRaw.replace(/\D+/g,"");
+      const waFmt = hasWa ? formatUS(waRaw) : null;
+      const waHtml = hasWa
+        ? `<font color="#1a2250">WhatsApp:</font> <a href="https://wa.me/${waFmt.linkDigits}"><font color="#1a2250">${esc(waFmt.display)}</font></a>`
         : "";
 
       return (`
@@ -209,6 +236,7 @@
         <div>${campusHTML}</div>
         <div><a href="${SITE_LINK}"><font color="#1a2250">${esc(SITE_DISPLAY)}</font></a></div>
         ${hasPhone ? `<div>${phoneHtml}</div>` : ``}
+        ${hasWa ? `<div>${waHtml}</div>` : ``}
       </div>
     </td>
   </tr>
@@ -301,28 +329,25 @@
       alert("Copied to clipboard. Paste in Outlook.");
     }
 
-    // Botões principais
-    document.getElementById("copyLongRich").addEventListener("click", () => copyRichFrom(previewLong));
-    document.getElementById("copyShortRich").addEventListener("click", () => copyRichFrom(previewShort));
-
-    // Auxiliares (mantidos)
-    async function copyHtmlFrom(el){
-      const html = el.innerHTML;
-      const ta = document.createElement("textarea");
-      ta.value = html;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      alert("Signature HTML copied to clipboard.");
-    }
-    function copyText(text){
+    // Clipboard helpers (modern API first, fallback for older browsers)
+    async function copyPlainToClipboard(text){
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try { await navigator.clipboard.writeText(text); return; } catch(e){ console.warn("clipboard.writeText failed", e); }
+      }
       const ta = document.createElement("textarea");
       ta.value = text;
+      ta.style.position = "fixed"; ta.style.left = "-9999px";
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
+    }
+    async function copyHtmlFrom(el){
+      await copyPlainToClipboard(el.innerHTML);
+      alert("HTML source copied. Paste into IONOS webmail's HTML/source-code signature editor.");
+    }
+    async function copyText(text){
+      await copyPlainToClipboard(text);
       alert("Plain text copied.");
     }
     function downloadHtml(filename, html){
@@ -339,13 +364,15 @@
       }, 0);
     }
 
-    document.getElementById("copyLongHtml").addEventListener("click", () => copyHtmlFrom(previewLong));
-    document.getElementById("copyLongText").addEventListener("click", () => copyText(previewLong.innerText));
-    document.getElementById("downloadLong").addEventListener("click", () => downloadHtml("OHLA_signature_long.html", previewLong.innerHTML));
-
-    document.getElementById("copyShortHtml").addEventListener("click", () => copyHtmlFrom(previewShort));
-    document.getElementById("copyShortText").addEventListener("click", () => copyText(previewShort.innerText));
-    document.getElementById("downloadShort").addEventListener("click", () => downloadHtml("OHLA_signature_short.html", previewShort.innerHTML));
+    // Wire the 4 action buttons for a section (Long / Short) in one pass
+    function wireSection(id, el){
+      document.getElementById("copy"+id+"Rich").addEventListener("click", () => copyRichFrom(el));
+      document.getElementById("copy"+id+"Html").addEventListener("click", () => copyHtmlFrom(el));
+      document.getElementById("copy"+id+"Text").addEventListener("click", () => copyText(el.innerText));
+      document.getElementById("download"+id).addEventListener("click", () => downloadHtml("OHLA_signature_"+id.toLowerCase()+".html", el.innerHTML));
+    }
+    wireSection("Long", previewLong);
+    wireSection("Short", previewShort);
 
     if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', updateAll); }
     else { updateAll(); }
